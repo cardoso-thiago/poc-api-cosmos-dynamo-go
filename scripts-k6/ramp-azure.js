@@ -10,15 +10,15 @@ export const options = {
       preAllocatedVUs: 200,
       maxVUs: 2000,
       stages: [
-        { target: 1000, duration: '30s' },
-        { target: 1000, duration: '3m' },
+        { target: 1000, duration: '1m' },
+        { target: 1500, duration: '3m' },
       ],
     },
   },
 };
 
 const uuids = new SharedArray('uuids', function() {
-    return open('../uuids.txt').split('\n').filter(u => u.trim().length > 0);
+    return open('../docker/uuids.txt').split('\n').filter(u => u.trim().length > 0);
 });
 
 export default function () {

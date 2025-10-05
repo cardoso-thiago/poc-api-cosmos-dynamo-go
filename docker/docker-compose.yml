@@ -14,8 +14,8 @@ services:
       retries: 10
 
   api:
-    build: .
-    container_name: poc-api-cosmos-dynamo-go
+    build: ../app
+    container_name: app-azure-go
     depends_on:
       cosmosdb:
         condition: service_healthy
@@ -24,7 +24,7 @@ services:
     ports:
       - "8888:8888"
     environment:
-      SERVICE_NAME: poc-api-cosmos-dynamo-go
+      SERVICE_NAME: app-azure-go
       OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
       CLOUD_PROVIDER: azure
       COSMOS_ENDPOINT: https://cosmosdb:8081
@@ -34,8 +34,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 500M
+          cpus: "1"
+          memory: 1G
 
   seed:
     image: python:3.11-slim
@@ -45,7 +45,7 @@ services:
         condition: service_healthy
     volumes:
       - ./seed.py:/seed.py
-      - ../uuids.txt:/uuids.txt
+      - ./uuids.txt:/uuids.txt
     command: /bin/sh -c "pip install azure-cosmos && python /seed.py"
     environment:
       COSMOS_ENDPOINT: https://cosmosdb:8081

@@ -18,7 +18,7 @@ export const options = {
 };
 
 const uuids = new SharedArray('uuids', function() {
-    return open('../uuids.txt').split('\n').filter(u => u.trim().length > 0);
+    return open('../docker/uuids.txt').split('\n').filter(u => u.trim().length > 0);
 });
 
 export default function () {

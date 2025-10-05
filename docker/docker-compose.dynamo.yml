@@ -20,9 +20,9 @@ services:
       dynamodb:
         condition: service_healthy
     volumes:
-      - ./:/app
-    working_dir: /app
-    command: /bin/sh -c "pip install boto3 && python /app/seed.py"
+      - ./seed.py:/seed.py
+      - ./uuids.txt:/uuids.txt
+    command: /bin/sh -c "pip install boto3 && python /seed.py"
     environment:
       CLOUD_PROVIDER: aws
       DYNAMO_ENDPOINT: http://dynamodb:8000
@@ -35,8 +35,8 @@ services:
           memory: 200M
 
   api:
-    build: .
-    container_name: poc-api-cosmos-dynamo-go
+    build: ../app
+    container_name: app-aws-go
     depends_on:
       dynamodb:
         condition: service_healthy
@@ -45,7 +45,7 @@ services:
     ports:
       - "8888:8888"
     environment:
-      SERVICE_NAME: poc-api-cosmos-dynamo-go
+      SERVICE_NAME: app-aws-go
       OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
       CLOUD_PROVIDER: aws
       DYNAMO_ENDPOINT: http://dynamodb:8000
@@ -54,8 +54,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.5"
-          memory: 500M
+          cpus: "1"
+          memory: 1G
 
   jaeger:
     image: jaegertracing/all-in-one:1.56

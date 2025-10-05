@@ -84,9 +84,13 @@ else:
 elapsed = time.time() - start
 print(f"Seed finished in {elapsed:.2f}s")
 
-with open("uuids.txt", "w") as f:
-    for u in uuids:
-        f.write(u + "\n")
+try:
+    with open("uuids.txt", "w") as f:
+        for u in uuids:
+            f.write(u + "\n")
+except Exception as e:
+    print(f"Erro ao salvar uuids.txt: {e}")
+    exit(1)
 
 print("\n==================== UUIDs GERADOS ====================")
 for u in uuids:

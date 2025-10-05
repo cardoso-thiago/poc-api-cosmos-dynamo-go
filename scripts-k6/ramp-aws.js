@@ -3,19 +3,22 @@ import { SharedArray } from 'k6/data';
 
 export const options = {
   scenarios: {
-    steady_load: {
-      executor: 'constant-arrival-rate',
-      rate: 1000,
+    ramping_load: {
+      executor: 'ramping-arrival-rate',
+      startRate: 500,
       timeUnit: '1s',
-      duration: '3m',
       preAllocatedVUs: 200,
       maxVUs: 2000,
+      stages: [
+        { target: 2000, duration: '1m' },
+        { target: 2000, duration: '3m' },
+      ],
     },
   },
 };
 
 const uuids = new SharedArray('uuids', function() {
-    return open('../uuids.txt').split('\n').filter(u => u.trim().length > 0);
+    return open('../docker/uuids.txt').split('\n').filter(u => u.trim().length > 0);
 });
 
 export default function () {
