@@ -45,7 +45,7 @@ services:
         condition: service_healthy
     volumes:
       - ./seed.py:/seed.py
-      - ./uuids.txt:/uuids.txt
+      - ../uuids.txt:/uuids.txt
     command: /bin/sh -c "pip install azure-cosmos && python /seed.py"
     environment:
       COSMOS_ENDPOINT: https://cosmosdb:8081
