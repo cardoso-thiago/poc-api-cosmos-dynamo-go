@@ -15,7 +15,7 @@ services:
 
   api:
     build: .
-    container_name: go-api
+    container_name: poc-api-cosmos-dynamo-go
     depends_on:
       cosmosdb:
         condition: service_healthy
@@ -24,6 +24,8 @@ services:
     ports:
       - "8888:8888"
     environment:
+      SERVICE_NAME: poc-api-cosmos-dynamo-go
+      OTEL_EXPORTER_OTLP_ENDPOINT: jaeger:4317
       CLOUD_PROVIDER: azure
       COSMOS_ENDPOINT: https://cosmosdb:8081
       COSMOS_KEY: C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPM
@@ -55,3 +57,12 @@ services:
         limits:
           cpus: "0.2"
           memory: 200M
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.56
+    container_name: jaeger
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true

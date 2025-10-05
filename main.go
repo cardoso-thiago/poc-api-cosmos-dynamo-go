@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -11,9 +12,23 @@ import (
 	"github.com/cardoso-thiago/poc-api-cosmos-dynamo-go/config"
 	"github.com/cardoso-thiago/poc-api-cosmos-dynamo-go/repository"
 	"github.com/gin-gonic/gin"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+)
+
+var (
+	serviceName  = os.Getenv("SERVICE_NAME")
+	collectorURL = os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
 )
 
 func main() {
+	cleanup := initTracer()
+	defer cleanup(context.Background())
 	start := time.Now()
 	cfg := config.LoadConfig()
 
@@ -37,6 +52,7 @@ func main() {
 	}
 
 	r := gin.Default()
+	r.Use(otelgin.Middleware(serviceName))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.String(http.StatusOK, "OK")
@@ -44,7 +60,12 @@ func main() {
 
 	r.GET("/items/:id", func(c *gin.Context) {
 		id := c.Param("id")
-		item, err := repo.GetItem(context.Background(), id)
+
+		ctx, span := otel.Tracer(serviceName).Start(c.Request.Context(), "db.GetItem")
+		span.SetAttributes(attribute.String("cloud_provider", cfg.CloudProvider))
+		item, err := repo.GetItem(ctx, id)
+		defer span.End()
+
 		if err != nil {
 			if strings.Contains(err.Error(), "404") || os.IsNotExist(err) {
 				c.Status(http.StatusNoContent)
@@ -62,4 +83,39 @@ func main() {
 	}()
 
 	r.Run(":8888")
+}
+
+func initTracer() func(context.Context) error {
+	secureOption := otlptracegrpc.WithInsecure()
+
+	exporter, err := otlptrace.New(
+		context.Background(),
+		otlptracegrpc.NewClient(
+			secureOption,
+			otlptracegrpc.WithEndpoint(collectorURL),
+		),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+	resources, err := resource.New(
+		context.Background(),
+		resource.WithAttributes(
+			attribute.String("service.name", serviceName),
+			attribute.String("library.language", "go"),
+		),
+	)
+	if err != nil {
+		log.Printf("Could not set resources: ", err)
+	}
+
+	otel.SetTracerProvider(
+		sdktrace.NewTracerProvider(
+			sdktrace.WithSampler(sdktrace.AlwaysSample()),
+			sdktrace.WithBatcher(exporter),
+			sdktrace.WithResource(resources),
+		),
+	)
+	return exporter.Shutdown
 }
