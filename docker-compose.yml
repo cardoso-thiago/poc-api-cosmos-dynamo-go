@@ -1,0 +1,57 @@
+services:
+  cosmosdb:
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:vnext-preview
+    container_name: cosmosdb
+    ports:
+      - "8081:8081"
+      - "1234:1234"
+    environment:
+      PROTOCOL: https
+      GATEWAY_PUBLIC_ENDPOINT: cosmosdb
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://localhost:8081/_explorer/emulator.pem"]
+      interval: 15s
+      retries: 10
+
+  api:
+    build: .
+    container_name: go-api
+    depends_on:
+      cosmosdb:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "8888:8888"
+    environment:
+      CLOUD_PROVIDER: azure
+      COSMOS_ENDPOINT: https://cosmosdb:8081
+      COSMOS_KEY: C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPM
+      COSMOS_DATABASE: RelDB
+      COSMOS_CONTAINER: RelContainer
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 500M
+
+  seed:
+    image: python:3.11-slim
+    container_name: cosmos-seed
+    depends_on:
+      cosmosdb:
+        condition: service_healthy
+    volumes:
+      - ./seed.py:/seed.py
+      - ./uuids.txt:/uuids.txt
+    command: /bin/sh -c "pip install azure-cosmos && python /seed.py"
+    environment:
+      COSMOS_ENDPOINT: https://cosmosdb:8081
+      COSMOS_KEY: C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPM
+      COSMOS_DATABASE: RelDB
+      COSMOS_CONTAINER: RelContainer
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 200M

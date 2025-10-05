@@ -1,0 +1,56 @@
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:latest
+    container_name: dynamodb
+    command: -jar DynamoDBLocal.jar -sharedDb -inMemory
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: [
+          "CMD-SHELL",
+          'if [ "$(curl -s -o /dev/null -I -w ''%{http_code}'' http://localhost:8000)" == "400" ]; then exit 0; else exit 1; fi',
+        ]
+      interval: 10s
+      retries: 10
+
+  seed:
+    image: python:3.11-slim
+    container_name: dynamo-seed
+    depends_on:
+      dynamodb:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: /bin/sh -c "pip install boto3 && python /app/seed.py"
+    environment:
+      CLOUD_PROVIDER: aws
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      DYNAMO_REGION: us-east-1
+      DYNAMO_TABLE: RelTable
+    deploy:
+      resources:
+        limits:
+          cpus: "0.2"
+          memory: 200M
+
+  api:
+    build: .
+    container_name: go-api-dynamo
+    depends_on:
+      dynamodb:
+        condition: service_healthy
+      seed:
+        condition: service_completed_successfully
+    ports:
+      - "8888:8888"
+    environment:
+      CLOUD_PROVIDER: aws
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      DYNAMO_REGION: us-east-1
+      DYNAMO_TABLE: RelTable
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 500M
