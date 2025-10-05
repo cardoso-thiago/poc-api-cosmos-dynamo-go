@@ -14,6 +14,7 @@ Isso irá:
 - Subir o CosmosDB emulador
 - Executar o seed automaticamente (preenchendo o arquivo `uuids.txt` na raiz do projeto)
 - Subir a API Go em `http://localhost:8888`
+- Subir o Jaeger com a IU acessível em `http://localhost:16686`
 
 ## Como executar DynamoDB
 
@@ -27,6 +28,7 @@ Isso irá:
 - Subir o DynamoDB local
 - Executar o seed automaticamente (preenchendo o arquivo `uuids.txt` na raiz do projeto)
 - Subir a API Go em `http://localhost:8888`
+- Subir o Jaeger com a IU acessível em `http://localhost:16686`
 
 ## Pré-requisitos
 
